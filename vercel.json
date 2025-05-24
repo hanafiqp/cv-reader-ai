@@ -1,11 +1,11 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/extract.py", "use": "@vercel/python" },
+    { "src": "api/extract.js", "use": "@vercel/node" },
     { "src": "frontend/package.json", "use": "@vercel/static-build" }
   ],
   "routes": [
-    { "src": "/api/extract", "dest": "api/extract.py" },
+    { "src": "/api/extract", "dest": "api/extract.js" },
     { "src": "/(.*)", "dest": "/frontend/$1" }
   ]
 }
