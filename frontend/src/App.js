@@ -16,6 +16,13 @@ function App() {
       method: "POST",
       body: formData,
     });
+
+    if (!res.ok) {
+      setLoading(false);
+      setResult({ error: "Failed to extract CV. Try again." });
+      return;
+    }
+
     const data = await res.json();
     setLoading(false);
     setResult(data);

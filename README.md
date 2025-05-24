@@ -1,48 +1,43 @@
-markdown name=README.md
 # CV Reader AI
 
-An AI-powered web app to extract advanced information from uploaded CV PDFs.
+AI-powered web app to extract information from uploaded CV PDF files.
 
-## 🛠 Features
+## Features
+
 - Upload a CV (PDF)
-- Extract name, contact, education, experience, skills, languages, certifications, and more
-- Backend: Python (FastAPI, spaCy, Transformers)
-- Frontend: React
-- Deployable on Vercel (no server setup needed!)
+- Extracts Name, Email, Phone, Organizations, Locations, Dates, Skills, and more
 
-## 🚀 Getting Started
+## Tech Stack
+
+- **Frontend:** React
+- **Backend:** FastAPI (Python), spaCy, Transformers, pdfplumber
+- **Deployment:** Vercel
+
+## Local Development
 
 ### Backend
 
-1. Install requirements:
-   ```
-   pip install -r requirements.txt
-   ```
-
-2. Run locally:
-   ```
-   uvicorn api.index:app --reload
-   ```
+```sh
+pip install -r requirements.txt
+uvicorn api.index:app --reload
+```
 
 ### Frontend
 
-1. Go to `frontend/`:
-   ```
-   cd frontend
-   npm install
-   npm start
-   ```
+```sh
+cd frontend
+npm install
+npm start
+```
 
-### Deploy
+- React app runs at http://localhost:3000 (proxy `/api` to http://localhost:8000 if needed)
 
-- Push your repo to GitHub.
-- Link your repo to [Vercel](https://vercel.com/).
-- Vercel will auto-detect the API and Frontend.
+## Deployment
 
-## 🤖 Customize Extraction
-
-Edit `api/extract_cv.py` to improve info extraction.
+1. Push to GitHub
+2. Connect GitHub repo to [Vercel](https://vercel.com/)
+3. Vercel auto-detects both frontend and backend
 
 ---
 
-PRs and issues welcome!
+**Edit `api/extract_cv.py` to customize extraction logic.**
