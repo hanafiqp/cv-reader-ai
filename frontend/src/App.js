@@ -9,12 +9,13 @@ function App() {
     e.preventDefault();
     setLoading(true);
     setResult(null);
-    const formData = new FormData();
-    formData.append("file", file);
 
     const res = await fetch("/api/extract", {
-      method: "POST",
-      body: formData,
+        method: "POST",
+        headers: {
+        "Content-Type": file.type, // "application/pdf"
+        },
+        body: file,
     });
 
     if (!res.ok) {

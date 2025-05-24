@@ -1,6 +1,0 @@
-fastapi
-uvicorn
-pdfplumber
-spacy
-transformers
-torch
