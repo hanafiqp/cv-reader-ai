@@ -1,31 +1,71 @@
-import pdfParse from "pdf-parse";
-import { GoogleGenerativeAI } from "@google/generative-ai"; // Corrected import name
-// import { extractCVData } from "../../utils/advancedCVExtractor"; // Not used in this snippet
+// Lokasi file: src/pages/api/extract.js
 
+import pdfParse from "pdf-parse";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// Konfigurasi API Next.js, bodyParser: false penting untuk parsing file manual
 export const config = {
   api: {
-    bodyParser: false, // Correct for manual PDF parsing
+    bodyParser: false,
   },
 };
 
+// Ambil API Key dari environment variables
 const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
 
 if (!GOOGLE_API_KEY) {
-  console.error("FATAL ERROR: NEXT_PUBLIC_GOOGLE_API_KEY is not defined.");
-  // Optionally, you might want to prevent the app from starting or handle this more gracefully
+  console.error("FATAL ERROR: NEXT_PUBLIC_GOOGLE_API_KEY is not defined in your environment.");
 }
 
+// ===================================================================
+// START: FUNGSI BANTU UNTUK CORS (Cross-Origin Resource Sharing)
+// ===================================================================
+/**
+ * Mengatur header HTTP untuk mengizinkan permintaan dari origin lain.
+ * Ini penting agar frontend Anda di localhost bisa mengakses API ini di Vercel.
+ * @param {import('next').NextApiRequest} req - Objek request dari Next.js
+ * @param {import('next').NextApiResponse} res - Objek response dari Next.js
+ */
+const setCorsHeaders = (res) => {
+  // Mengizinkan semua domain ('*'). Untuk produksi, lebih aman menggunakan daftar domain spesifik.
+  // Contoh: res.setHeader('Access-Control-Allow-Origin', 'https://your-frontend-domain.com');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  
+  // Metode HTTP yang diizinkan
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  
+  // Header kustom yang diizinkan
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+};
+// ===================================================================
+// END: FUNGSI BANTU UNTUK CORS
+// ===================================================================
+
+
 export default async function handler(req, res) {
+  // === LANGKAH 1: SETUP CORS UNTUK SETIAP REQUEST ===
+  // Panggil fungsi bantu untuk menambahkan header CORS ke setiap respons.
+  setCorsHeaders(res);
+
+  // Browser akan mengirim permintaan 'preflight' dengan metode OPTIONS
+  // sebelum melakukan POST. Kita harus menanganinya dengan benar.
+  if (req.method === "OPTIONS") {
+    return res.status(204).end(); // Kirim respons sukses 'No Content'
+  }
+  // === AKHIR DARI SETUP CORS ===
+
+  // Pastikan metode request adalah POST
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
+  // Cek kembali apakah API Key tersedia
   if (!GOOGLE_API_KEY) {
     return res.status(500).json({ error: "API key for AI service is not configured." });
   }
 
   try {
-    // 1. Read and Parse the PDF
+    // 1. Baca dan Parse PDF dari request body
     const chunks = [];
     for await (const chunk of req) {
       chunks.push(chunk);
@@ -34,20 +74,15 @@ export default async function handler(req, res) {
     const pdfData = await pdfParse(buffer);
     const cvText = pdfData.text;
 
-    // 2. Prepare the request for Gemini
-    const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY); // Correct SDK initialization
-
-    // Use a standard and latest model name for Gemini 1.5 Flash
+    // 2. Persiapkan permintaan untuk Google Gemini
+    const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
     const modelName = "gemini-1.5-flash-latest"; 
-
     const generationConfig = {
       temperature: 0.2,
-      maxOutputTokens: 8192, // Max for Flash 1.5; user had 4096
-      // responseMimeType: "application/json" // If you set this, you'd expect parsed JSON directly.
-                                              // But your prompt asks for a stringified JSON.
+      maxOutputTokens: 8192,
     };
 
-    // Construct the prompt clearly
+    // Contoh struktur JSON yang diinginkan untuk output dari AI
     const jsonStructureExample = `{
       "firstName": "string or null",
       "lastName": "string or null",
@@ -97,6 +132,7 @@ export default async function handler(req, res) {
       ]
     }`;
 
+    // Prompt lengkap yang akan dikirim ke AI
     const fullPrompt = `Extract comprehensive professional information from the following CV text.
 Focus on detailed extraction of work experience and education as structured arrays.
 
@@ -121,17 +157,16 @@ ${jsonStructureExample}
       generationConfig,
     });
 
-    // 3. Make the API Call
+    // 3. Lakukan Panggilan API ke Gemini
     const result = await generativeModel.generateContent({ contents: contentsForRequest });
     const geminiApiResponse = result.response;
 
-    // 4. Process the Response from Gemini
+    // 4. Proses Respons dari Gemini
     if (!geminiApiResponse) {
         console.error("Gemini API call did not yield a response object properly.", result);
         return res.status(500).json({ error: "AI model did not return a response object." });
     }
     
-    // Check for blocks or other issues indicated by promptFeedback
     if (geminiApiResponse.promptFeedback?.blockReason) {
         console.error("Gemini response blocked:", geminiApiResponse.promptFeedback.blockReason, geminiApiResponse.promptFeedback.safetyRatings);
         return res.status(400).json({ error: `AI model blocked the request: ${geminiApiResponse.promptFeedback.blockReason}` });
@@ -139,22 +174,19 @@ ${jsonStructureExample}
 
     if (!geminiApiResponse.candidates || geminiApiResponse.candidates.length === 0) {
         console.error("Gemini response has no candidates:", geminiApiResponse);
-        // Check finishReason if available
         const finishReason = geminiApiResponse.candidates?.[0]?.finishReason;
         const safetyRatings = geminiApiResponse.candidates?.[0]?.safetyRatings;
-        console.error("Finish Reason:", finishReason, "Safety Ratings:", safetyRatings);
         return res.status(500).json({ error: "AI model returned no candidates. Reason: " + (finishReason || "Unknown") });
     }
     
-    let rawJsonString = geminiApiResponse.text(); // Safely call .text()
+    let rawJsonString = geminiApiResponse.text();
 
     if (!rawJsonString || rawJsonString.trim() === "") {
         console.error("Gemini response text is empty.");
         return res.status(500).json({ error: "AI model returned an empty response." });
     }
     
-    // Optional: Clean up potential markdown backticks if the model accidentally adds them despite instructions
-    // This makes parsing more robust.
+    // Membersihkan respons dari markdown yang mungkin ditambahkan oleh AI
     rawJsonString = rawJsonString.trim();
     if (rawJsonString.startsWith("```json")) {
       rawJsonString = rawJsonString.substring(7, rawJsonString.lastIndexOf("```")).trim();
@@ -162,24 +194,21 @@ ${jsonStructureExample}
       rawJsonString = rawJsonString.substring(3, rawJsonString.length - 3).trim();
     }
     
+    // Coba parse string JSON
     let extractedData;
     try {
       extractedData = JSON.parse(rawJsonString);
     } catch (parseError) {
       console.error("Failed to parse JSON response from Gemini:", parseError.message);
-      console.error("Raw Gemini response string (length " + rawJsonString.length + "):"); // Log for debugging
-      // Log only a portion if it's too long for console
-      console.error(rawJsonString.substring(0, 1000) + (rawJsonString.length > 1000 ? "..." : ""));
+      console.error("Raw Gemini response string:", rawJsonString.substring(0, 1000));
       return res.status(500).json({ 
         error: "AI model returned data in an unexpected format (not valid JSON).",
-        // rawResponse: rawJsonString // Consider if you want to send this to the client
       });
     }
 
-    // 5. Send the parsed data back to the client
+    // 5. Kirim data yang sudah di-parse kembali ke klien
     res.status(200).json({
-      data: extractedData, // This is now a JavaScript object
-      // rawPdfText: cvText, // You can include this if needed for debugging or other client-side purposes
+      data: extractedData,
     });
 
   } catch (err) {
@@ -187,10 +216,10 @@ ${jsonStructureExample}
     let errorMessage = "An error occurred during CV extraction.";
     let statusCode = 500;
 
-    if (err.message && err.message.toLowerCase().includes("api key")) {
+    if (err.message?.toLowerCase().includes("api key")) {
         errorMessage = "Invalid or missing API Key for the AI service.";
         statusCode = 401; // Unauthorized
-    } else if (err.message && err.message.includes("quota")) {
+    } else if (err.message?.includes("quota")) {
         errorMessage = "API quota exceeded. Please check your usage limits.";
         statusCode = 429; // Too Many Requests
     } else if (err.message) {
