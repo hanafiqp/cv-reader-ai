@@ -174,21 +174,21 @@ const cvData = {
 
 const normalizedTags = tagManager.normalizeTags(cvData);
 console.log(normalizedTags);
-// Output: ["Location: Jakarta", "Experience: 5-7 years", "Skill: JavaScript", ...]
+// Output: ["Jakarta", "5-7 years", "JavaScript", "React", "Node.js"]
 ```
 
 ### 2. Smart Tag Suggestions
 ```javascript
 const smartTags = tagManager.generateSmartTagSuggestions(cvData);
 console.log(smartTags);
-// Output: ["Stack: Full Stack JavaScript", "Region: Southeast Asia", ...]
+// Output: ["Southeast Asia", "Full Stack JavaScript", "Frontend Developer"]
 ```
 
 ### 3. Creating Search Filters
 ```javascript
-const searchFilters = tagManager.createSearchFilters(allTags);
+const searchFilters = tagManager.createSearchFilters(cvData);
 console.log(searchFilters);
-// Output: { locations: [...], skills: [...], industries: [...] }
+// Output: { locations: ["Jakarta"], skills: ["JavaScript", "React"], industries: [...] }
 ```
 
 ## Advanced Filtering Examples

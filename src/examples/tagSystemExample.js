@@ -39,6 +39,7 @@ console.log("=== CV TAG SYSTEM DEMO ===\n");
 console.log("1. NORMALIZED TAGS:");
 const normalizedTags = tagManager.normalizeTags(sampleCVData);
 console.log(normalizedTags);
+// Expected output: ["Jakarta", "Indonesia", "5-7 years", "Senior", "JavaScript", "React", "Node.js", "AWS", "Docker"]
 console.log();
 
 // 2. Generate smart tag suggestions
@@ -63,10 +64,11 @@ const allTags = [...sampleCVData.tags, ...normalizedTags, ...smartTags];
 const uniqueTags = [...new Set(allTags)];
 console.log("4. ALL UNIQUE TAGS:");
 console.log(uniqueTags);
+// Expected output: ["Jakarta", "5+ years experience", "JavaScript", "React", "AWS Certified", "Full Stack Developer", "Indonesia", "5-7 years", "Senior", "Node.js", "AWS", "Docker", "Southeast Asia", "Full Stack JavaScript", "Cloud Computing"]
 console.log();
 
 console.log("5. SEARCH FILTERS:");
-const searchFilters = tagManager.createSearchFilters(uniqueTags);
+const searchFilters = tagManager.createSearchFilters(sampleCVData);
 console.log(searchFilters);
 console.log();
 
