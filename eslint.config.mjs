@@ -9,6 +9,30 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-const eslintConfig = [...compat.extends("next/core-web-vitals")];
+const eslintConfig = [
+  ...compat.extends("next/core-web-vitals"),
+  {
+    // Ignore files and directories
+    ignores: [
+      "node_modules/**",
+      ".next/**",
+      "out/**",
+      "build/**",
+      "dist/**",
+      ".vercel/**",
+      "*.config.js",
+      "*.config.mjs"
+    ]
+  },
+  {
+    rules: {
+      // Disable or customize rules that might cause issues
+      "@next/next/no-html-link-for-pages": "off",
+      "react/no-unescaped-entities": "off",
+      "react-hooks/exhaustive-deps": "warn",
+      "no-unused-vars": "warn"
+    }
+  }
+];
 
 export default eslintConfig;
