@@ -77,7 +77,8 @@ export default async function handler(req, res) {
 
     // 2. Persiapkan permintaan untuk Google Gemini
     const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
-    const modelName = "gemini-1.5-flash-latest"; 
+    // Gunakan model name yang benar - tanpa "-latest" suffix untuk v1beta API
+    const modelName = "gemini-1.5-flash"; 
     const generationConfig = {
       temperature: 0.2,
       maxOutputTokens: 8192,
