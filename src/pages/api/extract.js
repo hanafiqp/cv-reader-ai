@@ -185,92 +185,80 @@ export default async function handler(req, res) {
     }`;
 
     // Prompt lengkap yang akan dikirim ke AI
-    const fullPrompt = `Extract comprehensive professional information from the following CV text and create intelligent tags for filtering purposes.
-Focus on detailed extraction of work experience, education, and generate comprehensive tags for advanced filtering.
+    const fullPrompt = `Extract CV data as JSON. Return ONLY valid JSON, no markdown.
+        CV TEXT:
+        ${cvText}
 
-CV TEXT:
-${cvText}
+        Required JSON structure:
+        {
+          "firstName": "string|null",
+          "lastName": "string|null",
+          "email": "string|null",
+          "phoneNumber": "string|null",
+          "currentLocation": "string|null",
+          "currentCountry": "string|null",
+          "nationality": "string|null",
+          "linkedinUrl": "string|null",
+          "portfolioUrl": "string|null",
+          "githubUrl": "string|null",
+          "totalExperienceYears": "number|null",
+          "experienceLevel": "string|null",
+          "recentJobTitle": "string|null",
+          "recentJobCompany": "string|null",
+          "highestEducation": "string|null",
+          "degree": "string|null",
+          "hardSkills": "comma-separated|null",
+          "softSkills": "comma-separated|null",
+          "languages": "comma-separated with levels|null",
+          "certifications": "comma-separated|null",
+          "expectedSalary": "string|null",
+          "currentSalary": "string|null",
+          "remoteWorkPreference": "Remote|Hybrid|On-site|Flexible|null",
+          "willingToRelocate": "boolean|null",
+          "availabilityToStart": "string|null",
+          "visaStatus": "string|null",
+          "gender": "string|null",
+          "age": "number|null",
+          "maritalStatus": "string|null",
+          "workExperience": [{
+            "company": "string",
+            "position": "string",
+            "startDate": "YYYY-MM|null",
+            "endDate": "YYYY-MM|Present|null",
+            "responsibilities": "string|null",
+            "achievements": ["string"],
+            "technologies": ["string"],
+            "location": "string|null",
+            "isRemote": "boolean|null"
+          }],
+          "education": [{
+            "institution": "string",
+            "degree": "string",
+            "fieldOfStudy": "string|null",
+            "startDate": "YYYY|null",
+            "endDate": "YYYY|null",
+            "gpa": "string|null",
+            "location": "string|null"
+          }],
+          "projects": [{
+            "name": "string",
+            "description": "string|null",
+            "technologies": ["string"],
+            "role": "string|null",
+            "url": "string|null"
+          }],
+          "tags": []
+        }
 
-EXTRACTION INSTRUCTIONS:
-1. Extract all standard CV fields as listed in the OUTPUT STRUCTURE.
-2. For work experience, create a structured array. Each entry should include: company, position, date ranges (startDate, endDate), responsibilities, achievements (if any), technologies used (if any), location, country, industry, company size, salary (if mentioned), and reason for leaving (if mentioned). Calculate yearsOfExperience for each role if possible.
-3. For education, create a structured array. Each entry should include: institution, degree, field of study, date ranges (startDate, endDate), GPA (if available), achievements (if any), location, country, education level, and graduation status.
-4. Extract projects if mentioned, including name, description, technologies used, role, duration, and URL if available.
-5. Extract demographic information carefully: gender, age, nationality, marital status, visa status.
-6. Extract salary information: expected salary, current salary, salary range with currency.
-7. Extract work preferences: remote work preference, willingness to relocate, availability to start.
-8. Calculate total experience years across all positions.
+        Tag generation rules:
+        - Location: current city, country, region
+        - Experience: years (e.g., "3-5 years"), level (e.g., "Senior")
+        - Skills: programming languages, frameworks, tools
+        - Education: degree level, field, institution if notable
+        - Languages: with proficiency (e.g., "English Fluent")
+        - Work: "Remote", "Full-time", availability
 
-TAGGING INSTRUCTIONS - CREATE COMPREHENSIVE TAGS FOR FILTERING:
-Generate tags array with the following categories (only include tags that are relevant to the CV):
-
-LOCATION TAGS:
-- Current city/region (e.g., "Jakarta", "Bandung", "Surabaya")
-- Current country (e.g., "Indonesia", "Singapore", "Malaysia")
-- Willing to relocate locations if mentioned
-- Regional tags (e.g., "Southeast Asia", "ASEAN", "Asia Pacific")
-
-EXPERIENCE TAGS:
-- Total years (e.g., "1-2 years", "3-5 years", "5-10 years", "10+ years")
-- Experience level (e.g., "Fresh Graduate", "Junior", "Mid-Level", "Senior", "Lead", "Manager", "Director")
-- Management experience (e.g., "People Manager", "Team Lead", "Project Manager")
-- Industry experience (e.g., "Technology", "Finance", "Healthcare", "Manufacturing", "Retail", "Education")
-
-SKILL TAGS:
-- Programming languages (e.g., "JavaScript", "Python", "Java", "PHP", "Go")
-- Frameworks (e.g., "React", "Vue", "Laravel", "Spring Boot", "Django")
-- Databases (e.g., "MySQL", "PostgreSQL", "MongoDB", "Redis")
-- Cloud platforms (e.g., "AWS", "Google Cloud", "Azure", "Digital Ocean")
-- Tools and technologies (e.g., "Docker", "Kubernetes", "Git", "Jenkins")
-- Soft skills (e.g., "Leadership", "Communication", "Problem Solving", "Team Work")
-
-EDUCATION TAGS:
-- Degree level (e.g., "High School", "Diploma", "Bachelor", "Master", "PhD")
-- Field of study (e.g., "Computer Science", "Information Technology", "Business", "Engineering")
-- Institution type (e.g., "University", "Institute", "Polytechnic")
-- Institution name if well-known (e.g., "Universitas Indonesia", "ITB", "ITS")
-- Graduation status (e.g., "Fresh Graduate", "Recent Graduate")
-
-WORK PREFERENCE TAGS:
-- Work type (e.g., "Full-time", "Part-time", "Contract", "Freelance", "Internship")
-- Work location (e.g., "Remote", "On-site", "Hybrid", "Flexible")
-- Availability (e.g., "Immediate", "1 Month Notice", "2 Weeks Notice", "Available")
-
-SALARY TAGS (if mentioned):
-- Salary range (e.g., "5-10M IDR", "10-15M IDR", "15-20M IDR", "20M+ IDR")
-- Currency (e.g., "IDR", "USD", "SGD", "MYR")
-- Salary expectation (e.g., "Negotiable", "Market Rate", "Competitive")
-
-LANGUAGE TAGS:
-- Language proficiency (e.g., "English Fluent", "Indonesian Native", "Mandarin Basic")
-- International capability (e.g., "Multilingual", "English Speaking")
-
-CERTIFICATION TAGS:
-- Professional certifications (e.g., "AWS Certified", "Google Cloud Certified", "PMP", "Scrum Master")
-- Academic achievements (e.g., "Cum Laude", "Magna Cum Laude", "Dean's List")
-
-DEMOGRAPHIC TAGS (if clearly stated):
-- Age range (e.g., "20-25 years", "25-30 years", "30-35 years", "35+ years")
-- Gender (e.g., "Male", "Female") - only if explicitly mentioned
-- Nationality (e.g., "Indonesian", "Singaporean", "Malaysian")
-- Visa status (e.g., "Work Permit", "Citizen", "Visa Required")
-
-INDUSTRY TAGS:
-- Current/recent industry (e.g., "Fintech", "E-commerce", "Banking", "Startup", "Consulting")
-- Industry experience (e.g., "Multi-industry", "Finance Specialist", "Tech Specialist")
-
-SPECIAL TAGS:
-- Career status (e.g., "Job Seeker", "Career Changer", "Returning Professional")
-- Notable achievements (e.g., "Award Winner", "Published Author", "Speaker")
-- Special skills (e.g., "Bilingual", "International Experience", "Startup Experience")
-
-8. If a field is not found in the CV, use 'null' as its value in the JSON. For arrays like achievements, technologies, or tags, use an empty array [] if none are found.
-9. The entire output MUST be a single, valid JSON string that can be directly parsed by JSON.parse(). Do NOT include any explanatory text, comments, or markdown formatting (like \`\`\`json) around the JSON string itself.
-10. Tags should be specific, searchable, and useful for filtering. Avoid generic tags like "experienced" or "skilled". Be specific like "5+ years JavaScript" or "AWS Solutions Architect".
-
-OUTPUT STRUCTURE (ensure the output string strictly adheres to this JSON format):
-${jsonStructureExample}
-`;
+        Use null for missing fields. Empty [] for no data.`;
 
     const contentsForRequest = [{ parts: [{ text: fullPrompt }] }];
 
