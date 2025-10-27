@@ -183,9 +183,9 @@ RULES:
     let result;
     
     try {
-      // Timeout 30 detik - cukup untuk balanced prompt
+      // Timeout 60 detik - cukup untuk balanced prompt
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('AI request timeout')), 30000)
+        setTimeout(() => reject(new Error('AI request timeout')), 60000)
       );
       
       const aiPromise = generativeModel.generateContent({ contents: contentsForRequest });
