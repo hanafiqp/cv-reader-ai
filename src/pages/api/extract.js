@@ -106,86 +106,94 @@ export default async function handler(req, res) {
 
     console.log(`PDF parsed in ${Date.now() - startTime}ms, text length: ${cvText.length}`);
 
-        // 2. Persiapkan permintaan untuk Google Gemini dengan optimasi
+    // 2. Persiapkan permintaan untuk Google Gemini dengan optimasi
     const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
-    const modelName = "gemini-2.5-pro"; // Model yang valid
+    const modelName = "gemini-2.5-pro"; // Fastest model
     const generationConfig = {
-      temperature: 0.1,
-      maxOutputTokens: 4096,
+      temperature: 0.1, // Lower untuk konsistensi
+      maxOutputTokens: 4096, // Reduced untuk performa
       topP: 0.8,
       topK: 10,
     };
 
-    // Prompt yang BALANCED: cukup detail untuk banyak tags, tapi cepat diproses
-    const balancedPrompt = `Extract CV data and return ONLY valid JSON (no markdown).
+    // Prompt yang lebih singkat dan fokus untuk performa lebih cepat
+    const optimizedPrompt = `Extract CV information and return ONLY valid JSON. No markdown, no explanation.
 
-CV:
+CV TEXT:
 ${cvText}
 
-JSON structure:
+Return this exact JSON structure:
 {
-  "firstName": "", "lastName": "", "email": "", "phoneNumber": "",
-  "currentLocation": "city", "currentCountry": "country", "nationality": "",
-  "dateOfBirth": "YYYY-MM-DD", "gender": "", "maritalStatus": "",
-  "summary": "Write 2-3 professional sentences about candidate's expertise, experience, and goals",
-  "totalExperienceYears": 0, "experienceLevel": "Junior|Mid-Level|Senior|Lead",
-  "recentJobTitle": "", "recentJobCompany": "",
-  "highestEducation": "Bachelor|Master|PhD", "degree": "", "fieldOfStudy": "", "institution": "",
-  "hardSkills": "list ALL technical skills comma-separated",
-  "softSkills": "list ALL soft skills comma-separated",
-  "languages": "language (level) comma-separated",
-  "certifications": "list ALL certs comma-separated",
-  "expectedSalary": "", "currentSalary": "", "remoteWorkPreference": "Remote|Hybrid|On-site",
-  "willingToRelocate": false, "noticePeriod": "",
-  "linkedinUrl": "", "githubUrl": "", "portfolioUrl": "",
-  "workExperience": [{
-    "company": "", "position": "", "startDate": "YYYY-MM", "endDate": "YYYY-MM",
-    "location": "", "responsibilities": "", "technologies": [], "industryType": ""
-  }],
-  "education": [{
-    "institution": "", "degree": "", "fieldOfStudy": "",
-    "startDate": "YYYY", "endDate": "YYYY", "gpa": "", "location": "", "achievements": ""
-  }],
-  "projects": [{"name": "", "description": "", "role": "", "technologies": [], "url": ""}],
-  "awards": "", "publications": "", "volunteerExperience": "", "hobbies": "", "references": "",
+  "firstName": "string or null",
+  "lastName": "string or null",
+  "email": "string or null",
+  "phoneNumber": "string or null",
+  "currentLocation": "city or null",
+  "currentCountry": "country or null",
+  "nationality": "string or null",
+  "totalExperienceYears": 0,
+  "experienceLevel": "Junior|Mid-Level|Senior|Lead or null",
+  "recentJobTitle": "string or null",
+  "recentJobCompany": "string or null",
+  "highestEducation": "Bachelor|Master|PhD or null",
+  "degree": "string or null",
+  "hardSkills": "comma-separated skills",
+  "softSkills": "comma-separated skills",
+  "languages": "comma-separated with levels",
+  "certifications": "comma-separated or null",
+  "expectedSalary": "string or null",
+  "remoteWorkPreference": "Remote|Hybrid|On-site or null",
+  "willingToRelocate": false,
+  "linkedinUrl": "url or null",
+  "githubUrl": "url or null",
+  "summary": "brief summary or null",
+  "workExperience": [
+    {
+      "company": "string",
+      "position": "string",
+      "startDate": "YYYY-MM",
+      "endDate": "YYYY-MM or Present",
+      "responsibilities": "brief description",
+      "technologies": ["tech1", "tech2"]
+    }
+  ],
+  "education": [
+    {
+      "institution": "string",
+      "degree": "string",
+      "fieldOfStudy": "string",
+      "startDate": "YYYY",
+      "endDate": "YYYY",
+      "location": "string or null"
+    }
+  ],
   "tags": []
 }
 
-RULES:
-1. Return ONLY JSON, no markdown
-2. Use null for missing data
-3. For summary field: Be descriptive and professional, summarizing their career profile with 2-5 sentences.
-4. Extract EVERY skill/technology mentioned
-5. Generate comprehensive tags:
-   - "location [city]" for each city
-   - "country [name]" for each country
-   - "skill [name]" for EVERY technical skill
-   - "softskill [name]" for EVERY soft skill
-   - "experience [range]" (e.g., "3-5 years")
-   - "level [level]" (junior/senior/etc)
-   - "education [level]"
-   - "degree [field]"
-   - "industry [type]" for each industry
-   - "worktype [type]" (remote/hybrid/onsite)
-   - "language [lang]" for each language
-   - "certification [name]" for each cert
-6. Be thorough with tags - extract from ALL sections`;
+IMPORTANT: 
+- For summary field, provide a brief overview of the candidate's experience and skills.
+- Return ONLY valid JSON
+- Use null for missing fields
+- Use empty arrays [] for no data
+- Be concise
+- Calculate totalExperienceYears from work history
+- Generate relevant tags like: location, skills, experience level, education level`;
 
-    const contentsForRequest = [{ parts: [{ text: balancedPrompt }] }];
+    const contentsForRequest = [{ parts: [{ text: optimizedPrompt }] }];
 
     const generativeModel = genAI.getGenerativeModel({
       model: modelName,
       generationConfig,
     });
 
-        // 3. Lakukan Panggilan API ke Gemini dengan timeout optimal
+    // 3. Lakukan Panggilan API ke Gemini dengan timeout
     const aiStartTime = Date.now();
     let result;
     
     try {
-      // Timeout 60 detik - cukup untuk balanced prompt
+      // Set timeout untuk AI request (50 detik max)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('AI request timeout')), 60000)
+        setTimeout(() => reject(new Error('AI request timeout')), 50000)
       );
       
       const aiPromise = generativeModel.generateContent({ contents: contentsForRequest });
@@ -199,21 +207,18 @@ RULES:
         message: aiError.message,
         status: aiError.status,
         statusText: aiError.statusText,
+        response: aiError.response
       });
       
       if (aiError.message === 'AI request timeout') {
-        return res.status(504).json({ 
-          error: "AI processing timeout. Please try again with a shorter CV.",
-          hint: "Try uploading a CV with less than 5 pages for faster processing."
-        });
+        return res.status(504).json({ error: "AI processing timeout. Please try again with a shorter CV." });
       }
       
       // Check for 404 error from Gemini API
       if (aiError.status === 404 || aiError.message?.includes('404')) {
         return res.status(500).json({ 
-          error: "AI model configuration error.",
-          details: "The model 'gemini-1.5-flash' is not found. Please verify your API key is valid and has access to Gemini models.",
-          hint: "Check NEXT_PUBLIC_GOOGLE_API_KEY in your environment variables."
+          error: "AI model configuration error. Please check API key and model name.",
+          details: "The Gemini API returned 404. Verify NEXT_PUBLIC_GOOGLE_API_KEY is valid."
         });
       }
       
