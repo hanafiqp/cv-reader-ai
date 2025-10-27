@@ -201,9 +201,25 @@ IMPORTANT:
       console.log(`AI response received in ${Date.now() - aiStartTime}ms`);
     } catch (aiError) {
       console.error("AI generation error:", aiError);
+      console.error("Error details:", {
+        message: aiError.message,
+        status: aiError.status,
+        statusText: aiError.statusText,
+        response: aiError.response
+      });
+      
       if (aiError.message === 'AI request timeout') {
         return res.status(504).json({ error: "AI processing timeout. Please try again with a shorter CV." });
       }
+      
+      // Check for 404 error from Gemini API
+      if (aiError.status === 404 || aiError.message?.includes('404')) {
+        return res.status(500).json({ 
+          error: "AI model configuration error. Please check API key and model name.",
+          details: "The Gemini API returned 404. Verify NEXT_PUBLIC_GOOGLE_API_KEY is valid."
+        });
+      }
+      
       throw aiError;
     }
     
