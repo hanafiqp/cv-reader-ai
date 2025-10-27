@@ -128,8 +128,8 @@ Return this exact JSON structure:
   "lastName": "string or null",
   "email": "string or null",
   "phoneNumber": "string or null",
-  "currentLocation": "city or null",
-  "currentCountry": "country or null",
+  "currentLocation": "string (current city/region) or null",
+  "currentCountry": "string (current country) or null",
   "nationality": "string or null",
   "totalExperienceYears": 0,
   "experienceLevel": "Junior|Mid-Level|Senior|Lead or null",
@@ -141,12 +141,10 @@ Return this exact JSON structure:
   "softSkills": "comma-separated skills",
   "languages": "comma-separated with levels",
   "certifications": "comma-separated or null",
-  "expectedSalary": "string or null",
+  "currentSalary": "string (current salary with currency) or null",
   "remoteWorkPreference": "Remote|Hybrid|On-site or null",
   "willingToRelocate": false,
-  "linkedinUrl": "url or null",
-  "githubUrl": "url or null",
-  "summary": "brief summary or null",
+  "experience": "string (overall experience summary) or null",
   "workExperience": [
     {
       "company": "string",
@@ -171,7 +169,7 @@ Return this exact JSON structure:
 }
 
 IMPORTANT: 
-- For summary field, provide a brief overview of the candidate's experience and skills.
+- For experience field, provide a brief overview of the candidate's experience and skills with 2-3 sentences.
 - Return ONLY valid JSON
 - Use null for missing fields
 - Use empty arrays [] for no data
