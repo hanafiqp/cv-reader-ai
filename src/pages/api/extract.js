@@ -110,74 +110,116 @@ export default async function handler(req, res) {
     const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
     const modelName = "gemini-2.5-pro"; // Fastest model
     const generationConfig = {
-      temperature: 0.1, // Lower untuk konsistensi
-      maxOutputTokens: 4096, // Reduced untuk performa
-      topP: 0.8,
-      topK: 10,
+      temperature: 0.3, // Balance antara konsistensi dan kreativitas
+      maxOutputTokens: 8192, // Lebih besar untuk tags yang comprehensive
+      topP: 0.95,
+      topK: 40,
     };
 
-    // Prompt yang lebih singkat dan fokus untuk performa lebih cepat
-    const optimizedPrompt = `Extract CV information and return ONLY valid JSON. No markdown, no explanation.
+    // Prompt yang comprehensive untuk hasil maksimal
+    const comprehensivePrompt = `You are an expert CV/Resume parser. Extract ALL relevant information from this CV text and return ONLY a valid JSON object (no markdown, no explanation).
 
 CV TEXT:
 ${cvText}
 
-Return this exact JSON structure:
+Extract and return this EXACT JSON structure with ALL fields:
+
 {
-  "firstName": "string or null",
-  "lastName": "string or null",
-  "email": "string or null",
-  "phoneNumber": "string or null",
-  "currentLocation": "city or null",
-  "currentCountry": "country or null",
-  "nationality": "string or null",
+  "firstName": "First name or null",
+  "lastName": "Last name or null",
+  "email": "Email address or null",
+  "phoneNumber": "Phone number or null",
+  "currentLocation": "City name only (e.g., 'Jakarta', 'Bandung') or null",
+  "currentCountry": "Country name only (e.g., 'Indonesia', 'Singapore') or null",
+  "nationality": "Nationality or null",
+  "dateOfBirth": "YYYY-MM-DD or null",
+  "gender": "Male|Female|Other or null",
+  "maritalStatus": "Single|Married|Divorced or null",
+  "summary": "Professional summary/objective in 2-3 sentences that captures the candidate's expertise, experience level, and career goals. Make it compelling and informative.",
   "totalExperienceYears": 0,
-  "experienceLevel": "Junior|Mid-Level|Senior|Lead or null",
-  "recentJobTitle": "string or null",
-  "recentJobCompany": "string or null",
-  "highestEducation": "Bachelor|Master|PhD or null",
-  "degree": "string or null",
-  "hardSkills": "comma-separated skills",
-  "softSkills": "comma-separated skills",
-  "languages": "comma-separated with levels",
-  "certifications": "comma-separated or null",
-  "expectedSalary": "string or null",
+  "experienceLevel": "Junior|Mid-Level|Senior|Lead|Expert or null",
+  "recentJobTitle": "Most recent position title or null",
+  "recentJobCompany": "Most recent company name or null",
+  "highestEducation": "High School|Diploma|Bachelor|Master|PhD or null",
+  "degree": "Degree name (e.g., 'Bachelor of Computer Science') or null",
+  "fieldOfStudy": "Field of study or major or null",
+  "institution": "University/institution name or null",
+  "hardSkills": "Comma-separated technical skills (programming languages, tools, frameworks, technologies). Be COMPREHENSIVE - list ALL mentioned skills.",
+  "softSkills": "Comma-separated soft skills (leadership, communication, teamwork, problem-solving, etc.). List ALL mentioned.",
+  "languages": "Comma-separated languages with proficiency levels (e.g., 'English (Fluent), Indonesian (Native), Mandarin (Basic)'). List ALL.",
+  "certifications": "Comma-separated certifications with issuing organization if available. List ALL.",
+  "expectedSalary": "Salary expectation or range if mentioned, or null",
+  "currentSalary": "Current salary if mentioned, or null",
   "remoteWorkPreference": "Remote|Hybrid|On-site or null",
-  "willingToRelocate": false,
-  "linkedinUrl": "url or null",
-  "githubUrl": "url or null",
+  "willingToRelocate": true or false,
+  "noticePeriod": "Notice period (e.g., '1 month', 'Immediate') or null",
+  "linkedinUrl": "LinkedIn profile URL or null",
+  "githubUrl": "GitHub profile URL or null",
+  "portfolioUrl": "Portfolio/website URL or null",
   "workExperience": [
     {
-      "company": "string",
-      "position": "string",
-      "startDate": "YYYY-MM",
-      "endDate": "YYYY-MM or Present",
-      "responsibilities": "brief description",
-      "technologies": ["tech1", "tech2"]
+      "company": "Company name",
+      "position": "Job title/position",
+      "startDate": "YYYY-MM format",
+      "endDate": "YYYY-MM or 'Present'",
+      "location": "Work location or null",
+      "responsibilities": "Detailed description of role and achievements",
+      "technologies": ["Tech1", "Tech2", "Tech3"],
+      "industryType": "Industry sector (e.g., 'Fintech', 'E-commerce', 'Healthcare') or null"
     }
   ],
   "education": [
     {
-      "institution": "string",
-      "degree": "string",
-      "fieldOfStudy": "string",
+      "institution": "University/school name",
+      "degree": "Degree type (Bachelor, Master, etc.)",
+      "fieldOfStudy": "Major/field of study",
       "startDate": "YYYY",
-      "endDate": "YYYY",
-      "location": "string or null"
+      "endDate": "YYYY or 'Present'",
+      "gpa": "GPA if mentioned, or null",
+      "location": "City/country or null",
+      "achievements": "Academic achievements, honors, awards or null"
     }
   ],
+  "projects": [
+    {
+      "name": "Project name",
+      "description": "Brief project description",
+      "role": "Role in project",
+      "technologies": ["Tech1", "Tech2"],
+      "url": "Project URL if available, or null"
+    }
+  ],
+  "awards": "Comma-separated awards and recognitions, or null",
+  "publications": "Comma-separated publications or research papers, or null",
+  "volunteerExperience": "Volunteer work or community involvement, or null",
+  "hobbies": "Hobbies and interests, or null",
+  "references": "Reference information if provided, or null",
   "tags": []
 }
 
-IMPORTANT: 
-- Return ONLY valid JSON
-- Use null for missing fields
-- Use empty arrays [] for no data
-- Be concise
-- Calculate totalExperienceYears from work history
-- Generate relevant tags like: location, skills, experience level, education level`;
+CRITICAL INSTRUCTIONS:
+1. Return ONLY valid JSON - no markdown code blocks, no explanations
+2. Extract ALL skills mentioned - be comprehensive, not selective
+3. For "summary": Write a professional 2-3 sentence summary that highlights the candidate's key strengths, experience level, expertise areas, and career focus
+4. For missing fields, use null (not empty strings)
+5. For empty arrays, use []
+6. Calculate totalExperienceYears by summing all work experience durations
+7. Generate COMPREHENSIVE tags covering:
+   - Location tags: "location [city]", "country [country]"
+   - Skill tags: "skill [each technical skill]", "softskill [each soft skill]"
+   - Experience tags: "experience [range]" (e.g., "experience 5-7 years"), "level [level]"
+   - Education tags: "education [level]", "degree [field]"
+   - Industry tags: "industry [each industry]"
+   - Work type tags: "worktype [preference]"
+   - Language tags: "language [each language]"
+   - Certification tags: "certification [each cert]"
+8. Generate AT LEAST 80-120 tags to ensure comprehensive searchability
+9. Be thorough - extract every skill, technology, tool, framework mentioned
+10. For summary field: Be descriptive and professional, summarizing their career profile
 
-    const contentsForRequest = [{ parts: [{ text: optimizedPrompt }] }];
+Example tags: ["location jakarta", "country indonesia", "skill javascript", "skill react", "skill node.js", "skill aws", "skill docker", "skill kubernetes", "softskill leadership", "softskill communication", "experience 5-7 years", "level senior", "education bachelor", "degree computer science", "industry fintech", "industry e-commerce", "worktype remote", "language english fluent", "language indonesian native", "certification aws certified"]`;
+
+    const contentsForRequest = [{ parts: [{ text: comprehensivePrompt }] }];
 
     const generativeModel = genAI.getGenerativeModel({
       model: modelName,
@@ -189,9 +231,9 @@ IMPORTANT:
     let result;
     
     try {
-      // Set timeout untuk AI request (25 detik max)
+      // Set timeout untuk AI request (40 detik max untuk comprehensive extraction)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('AI request timeout')), 25000)
+        setTimeout(() => reject(new Error('AI request timeout')), 40000)
       );
       
       const aiPromise = generativeModel.generateContent({ contents: contentsForRequest });
@@ -205,7 +247,6 @@ IMPORTANT:
         message: aiError.message,
         status: aiError.status,
         statusText: aiError.statusText,
-        response: aiError.response
       });
       
       if (aiError.message === 'AI request timeout') {
@@ -215,8 +256,9 @@ IMPORTANT:
       // Check for 404 error from Gemini API
       if (aiError.status === 404 || aiError.message?.includes('404')) {
         return res.status(500).json({ 
-          error: "AI model configuration error. Please check API key and model name.",
-          details: "The Gemini API returned 404. Verify NEXT_PUBLIC_GOOGLE_API_KEY is valid."
+          error: "AI model configuration error.",
+          details: "The model 'gemini-1.5-flash' is not found. Please verify your API key is valid and has access to Gemini models.",
+          hint: "Check NEXT_PUBLIC_GOOGLE_API_KEY in your environment variables."
         });
       }
       
