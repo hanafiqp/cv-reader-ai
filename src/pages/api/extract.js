@@ -11,7 +11,8 @@ export const config = {
     responseLimit: false,
     externalResolver: true,
   },
-  maxDuration: 60, // Maximum 60 detik untuk Vercel Pro, 10 detik untuk Free tier
+  maxDuration: 60, // Maximum 60 detik untuk Vercel Pro
+  memory: 1024, // 1GB memory
 };
 
 // Ambil API Key dari environment variables
