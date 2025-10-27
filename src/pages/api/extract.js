@@ -110,10 +110,10 @@ export default async function handler(req, res) {
     const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
     const modelName = "gemini-2.5-pro"; // Model yang valid
     const generationConfig = {
-      temperature: 0.2,
-      maxOutputTokens: 8192,
-      topP: 0.9,
-      topK: 30,
+      temperature: 0.1,
+      maxOutputTokens: 4096,
+      topP: 0.8,
+      topK: 10,
     };
 
     // Prompt yang BALANCED: cukup detail untuk banyak tags, tapi cepat diproses
@@ -156,7 +156,7 @@ RULES:
 2. Use null for missing data
 3. For summary field: Be descriptive and professional, summarizing their career profile with 2-5 sentences.
 4. Extract EVERY skill/technology mentioned
-5. Generate 80-120 comprehensive tags:
+5. Generate comprehensive tags:
    - "location [city]" for each city
    - "country [name]" for each country
    - "skill [name]" for EVERY technical skill
