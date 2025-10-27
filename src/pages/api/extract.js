@@ -108,7 +108,7 @@ export default async function handler(req, res) {
 
     // 2. Persiapkan permintaan untuk Google Gemini dengan optimasi
     const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
-    const modelName = "gemini-1.5-flash"; // Fastest model
+    const modelName = "gemini-2.5-pro"; // Fastest model
     const generationConfig = {
       temperature: 0.1, // Lower untuk konsistensi
       maxOutputTokens: 4096, // Reduced untuk performa
